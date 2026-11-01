@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "server": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test --test-concurrency=1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@clerk/express": "^1.4.19",
+    "@clerk/express": "^2.1.75",
     "cloudinary": "^2.6.1",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
@@ -22,5 +23,8 @@
     "nodemon": "^3.1.10",
     "stripe": "^18.1.0",
     "svix": "^1.42.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

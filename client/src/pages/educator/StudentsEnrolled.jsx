@@ -1,23 +1,25 @@
-import React, { useEffect, useState } from 'react'
-import { dummyStudentEnrolled } from '../../assets/assets'
+import React, { useContext, useEffect, useState } from 'react'
+import { AppContext } from '../../context/AppContext'
 import Loading from '../../components/student/Loading'
 
 const StudentsEnrolled = () => {
 
+const {api} = useContext(AppContext)
+const [error, setError] = useState('')
 const [enrolledStudents, setEnrollStudents] = useState(null)
 
-const fetchEnrolledStudents = async ()=>{
-  setEnrollStudents(dummyStudentEnrolled)
-}
-
-useEffect(()=>{
-    fetchEnrolledStudents()
-},[])
+useEffect(() => {
+  let active = true
+  api('/api/educator/students').then(data => { if(active) setEnrollStudents(data.students) }).catch(error => { if(active) setError(error.message) })
+  return () => {active = false}
+}, [api])
+if(error) return <p role='alert' className='p-8 text-red-600'>{error}</p>
 
 
   return enrolledStudents ? (
     <div className='min-h-screen flex flex-col items-start justify-between
     md:p-8 md:pb-0 p-4 pt-8 pb-0'>
+      {!enrolledStudents.length && <p className='mb-4'>No students enrolled yet.</p>}
       <div className='flex flex-col items-center max-w-4xl w-full 
       overflow-hidden rounded-md bg-white border border-gray-500/20'>
         <table className='table-fixed md:table-auto w-full overflow-hidden pb-4'>
@@ -46,7 +48,7 @@ useEffect(()=>{
                   </td>
                   <td className='px-4 py-3 truncate'>{item.courseTitle}</td>
                   <td className='px-4 py-3 hidden sm:table-cell'>
-                    {new Date(item.purchaseDate).toLocaleDateString()}</td>
+                    {new Date(item.enrolledAt).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>

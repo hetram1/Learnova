@@ -1,11 +1,10 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { assets } from '../../assets/assets'
-import { AppContext } from '../../context/AppContext';
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
 
-  const { isEducator } = useContext(AppContext);
+
 
   const menuItems = [
     {name:'Dashboard',path:'/educator',icon: assets.home_icon},
@@ -17,7 +16,7 @@ const Sidebar = () => {
   ];
 
 
-  return isEducator && (
+  return (
     <div className='md:w-64 w-16 border-r min-h-screen text-base border-gray-500
     py-2 flex flex-col'>
       {menuItems.map((item)=>(

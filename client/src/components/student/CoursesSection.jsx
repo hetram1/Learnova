@@ -5,7 +5,7 @@ import CourseCard from './CourseCard'
 
 const CoursesSection = () => {
 
-  const {allCourses} = useContext(AppContext)
+  const {allCourses, coursesLoading, coursesError} = useContext(AppContext)
 
   return (
     <div className='py-16 md:px-40 px-8'>
@@ -16,6 +16,9 @@ const CoursesSection = () => {
         design to <br/> business and wellness, our courses are crafted to deliver results.
       </p>
 
+      {coursesError && <p role='alert' className='mt-5 text-red-600'>{coursesError}</p>}
+      {coursesLoading && <p className='mt-5'>Loading courses…</p>}
+      {!coursesLoading && !coursesError && !allCourses.length && <p className='mt-5'>No published courses yet.</p>}
       <div className='grid grid-cols-auto px-4 md:px-0 md:my-16 my-10 gap-4'>
         {allCourses.slice(0,4).map((course,index)=> <CourseCard key={index}
         course={course}/>)}

@@ -1,63 +1,49 @@
-import React, { useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AppContext } from '../../context/AppContext'
-import Loading from '../../components/student/Loading';
+import Loading from '../../components/student/Loading'
 
 const MyCourses = () => {
-
-  const {currency, allCourses} = useContext(AppContext);
-
-  const [courses, setCourses] = useState(null)
-
-  const fetchEducatorCourses = async() =>{
-    setCourses(allCourses)
-  }
-
-  useEffect(() => {
-      fetchEducatorCourses()
-  },[])
-
-  return courses ? (
-    <div className='h-screen flex flex-col items-start justify-between md:p-8
-    mb:pb-0 p-4 pt-8 pb-0'>
-      <div className='w-full'>
-       <h2 className='pb-4 text-lg font-medium'>My Courses</h2>
-          <div className='flex flex-col items-center max-w-4xl w-full overflow-hidden
-          rounded-md bg-white border border-gray-500/20'>
-            <table className='md:table-auto table-fixed w-full overflow-hidden'>
-              <thead className='text-gray-900 border-b border-gray-500/20 text-sm
-              text-left'>
-                <tr>
-                    <th className='px-4 py-3 font-semibold truncate'>All Courses</th>
-                    <th className='px-4 py-3 font-semibold truncate'>Earnings</th>
-                    <th className='px-4 py-3 font-semibold truncate'>Students</th>
-                    <th className='px-4 py-3 font-semibold truncate'>Published On</th>
-                </tr>
-              </thead>
-              {/* Educator My Courses Table Body */}
-              <tbody className='text-sm text-gray-500'>
-                  {courses.map((course) =>(
-                    <tr key={course._id} className='border-b border-gray-500/20'>
-                      <td className='md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3
-                       truncate'>
-                        <img src={course.courseThumbnail} alt="Course Image" className='w-16' />
-                        <span className='truncate hidden md:block'>{course.courseTitle}
-                        </span>
-                      </td>
-                      <td className='px-4 py-3'>
-                        {currency} {Math.floor(course.enrolledStudents.length * (course.coursePrice - course.discount * 
-                          course.coursePrice /100))} </td>
-                      <td className='px-4 py-3'>{course.enrolledStudents.length}</td>
-                      <td>
-                        {new Date(course.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
+    const { api, fetchAllCourses } = useContext(AppContext)
+    const [courses, setCourses] = useState(null)
+    const [error, setError] = useState('')
+    const [busy, setBusy] = useState(null)
+    const load = useCallback(async () => {
+        try { setCourses((await api('/api/educator/courses')).courses) }
+        catch (error) { setError(error.message) }
+    }, [api])
+    useEffect(() => { load() }, [load])
+    const change = async (course, remove = false) => {
+        setBusy(course._id)
+        setError('')
+        try {
+            await api('/api/courses/' + course._id, remove ? { method: 'DELETE' } :
+                { method: 'PUT', body: JSON.stringify({ isPublished: !course.isPublished }) })
+            await load()
+            await fetchAllCourses()
+        } catch (error) { setError(error.message) }
+        finally { setBusy(null) }
+    }
+    if (!courses && !error) return <Loading />
+    return <div className="md:p-8 p-4 min-h-screen">
+        <h1 className="pb-4 text-lg font-medium">My Courses</h1>
+        {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
+        {courses?.length === 0 && <p>No courses yet. <Link className="text-blue-600" to="/educator/add-course">Create a course</Link></p>}
+        <div className="max-w-5xl overflow-x-auto rounded-md border border-gray-500/20">
+            <table className="w-full text-left text-sm">
+                <thead className="border-b"><tr><th className="p-3">Course</th><th className="p-3">Students</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+                <tbody>{courses?.map(course => <tr key={course._id} className="border-b">
+                    <td className="p-3"><Link to={'/course/' + course._id} className="flex items-center gap-3">{course.courseThumbnail && <img src={course.courseThumbnail} alt="" className="w-16 aspect-video object-cover hidden sm:block" />}<span>{course.courseTitle}</span></Link></td>
+                    <td className="p-3">{course.enrollmentCount}</td>
+                    <td className="p-3">{course.isPublished ? 'Published' : 'Draft'}</td>
+                    <td className="p-3"><div className="flex flex-wrap gap-3">
+                        <Link className="text-blue-600" to={'/educator/edit-course/' + course._id}>Edit</Link>
+                        <button disabled={busy === course._id} onClick={() => change(course)} className="text-blue-600 disabled:text-gray-400">{course.isPublished ? 'Unpublish' : 'Publish'}</button>
+                        {!course.enrollmentCount && <button disabled={busy === course._id} onClick={() => change(course, true)} className="text-red-600 disabled:text-gray-400">Delete</button>}
+                    </div></td>
+                </tr>)}</tbody>
             </table>
-          </div>
-      </div>
+        </div>
     </div>
-  ) : <Loading/>
 }
-
 export default MyCourses

@@ -1,34 +1,22 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext } from 'react'
 import { AppContext } from '../../context/AppContext'
 import {Line} from 'rc-progress'
 import Footer from '../../components/student/Footer'
 
 const MyEnrollments = () => {
 
-  const {enrolledCourses, calculateCourseDuration, navigate} = useContext(AppContext)
+  const {enrolledCourses, calculateCourseDuration, calculateNoOfLectures, completedCount, enrollmentsLoading, enrollmentsError, navigate} = useContext(AppContext)
 
-  const [progressArray, setProgressArray] = useState([
-    {lectureCompleted: 2, totalLectures: 4},
-    {lectureCompleted: 1, totalLectures: 5},
-    {lectureCompleted: 3, totalLectures: 6},
-    {lectureCompleted: 4, totalLectures: 4},
-    {lectureCompleted: 0, totalLectures: 3},
-    {lectureCompleted: 5, totalLectures: 7},
-    {lectureCompleted: 6, totalLectures: 8},
-    {lectureCompleted: 2, totalLectures: 6},
-    {lectureCompleted: 4, totalLectures: 10},
-    {lectureCompleted: 3, totalLectures: 5},
-    {lectureCompleted: 7, totalLectures: 7},
-    {lectureCompleted: 1, totalLectures: 4},
-    {lectureCompleted: 0, totalLectures: 2},
-    {lectureCompleted: 5, totalLectures: 5}
-  ])
+  const progressArray = enrolledCourses.map(course => ({lectureCompleted: completedCount(course), totalLectures: calculateNoOfLectures(course)}))
 
   return (
 
     <>
     <div className='md:px-36 px-8 pt-10'>
       <h1 className='text-2xl font-semibold'>My Enrollments</h1>
+      {enrollmentsError && <p role='alert' className='mt-5 text-red-600'>{enrollmentsError}</p>}
+      {enrollmentsLoading && <p className='mt-5'>Loading enrollments…</p>}
+      {!enrollmentsLoading && !enrollmentsError && !enrolledCourses.length && <p className='mt-5'>You have no enrollments yet. <button className='text-blue-600' onClick={() => navigate('/course-list')}>Discover courses</button></p>}
       <table className='md:table-auto table-fixed w-full overflow-hidden border
       mt-10'>
         <thead className='text-gray-900 border-b border-gray-500/20 text-sm
@@ -49,7 +37,7 @@ const MyEnrollments = () => {
                 <div className='flex-1'>
                   <p className='mb-1 max-sm:text-sm'>{course.courseTitle}</p>
                   <Line strokeWidth={2} percent={progressArray[index] ? 
-                    (progressArray[index].lectureCompleted * 100) / progressArray[index].totalLectures :0 } className='bg-gray-300 rounded-full'/>
+                    (progressArray[index].lectureCompleted * 100) / (progressArray[index].totalLectures || 1) :0 } className='bg-gray-300 rounded-full'/>
                 </div>
               </td>
               <td className='px-4 py-3 max-sm:hidden'>

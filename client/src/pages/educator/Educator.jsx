@@ -11,7 +11,7 @@ const Educator = () => {
 
       <div className='flex'>
         <Sidebar/>
-        <div className='flex-1'>
+        <div className='flex-1 min-w-0'>
           {<Outlet/>}
         </div>  
       </div>

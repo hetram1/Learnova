@@ -1,20 +1,20 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { AppContext } from '../../context/AppContext';
-import { assets, dummyDashboardData } from '../../assets/assets';
+import { assets } from '../../assets/assets';
 import Loading from '../../components/student/Loading';
 
 const Dashboard = () => {
 
-  const {currency} = useContext(AppContext)
+  const {api} = useContext(AppContext)
   const [dashboardData, setDashboardData] = useState(null)
+  const [error, setError] = useState('')
 
-  const fetchDashboarddData = async ()=>{
-    setDashboardData(dummyDashboardData)
-  }
-
-  useEffect(()=>{
-      fetchDashboarddData()
-  },[])
+  useEffect(() => {
+    let active = true
+    api('/api/educator/dashboard').then(data => { if(active) setDashboardData(data.dashboard) }).catch(error => { if(active) setError(error.message) })
+    return () => {active = false}
+  }, [api])
+  if(error) return <p role='alert' className='p-8 text-red-600'>{error}</p>
 
   return dashboardData ? (
     <div className='min-h-screen flex flex-col items-start justify-between gap-8
@@ -26,7 +26,7 @@ const Dashboard = () => {
             <img src={assets.patients_icon} alt="patients_icon"/>
             <div>
               <p className='text-2xl font-medium text-gray-600'>
-                {dashboardData.enrolledStudentsData.length}</p>
+                {dashboardData.totalEnrollments}</p>
                 {/* text-base ko text kiya ha niche */}
               <p className='text text-gray-500'>Total Enrollments</p>
             </div>
@@ -47,8 +47,8 @@ const Dashboard = () => {
             <img src={assets.earning_icon} alt="earning_icon"/>
             <div>
               <p className='text-2xl font-medium text-gray-600'>
-                {currency}{dashboardData.totalEarnings}</p>
-              <p className='text-base text-gray-500'>Total Earnings</p>
+                {dashboardData.publishedCourses}</p>
+              <p className='text-base text-gray-500'>Published Courses</p>
             </div>
           </div>
         </div>
@@ -58,6 +58,7 @@ const Dashboard = () => {
           <h2 className='pb-4 text-lg font-medium'>Latest Enrollments</h2>
           <div className='flex flex-col items-center max-w-4xl w-full overflow-hidden
           rounded-md bg-white border border-gray-500/20'>
+          {!dashboardData.enrolledStudentsData.length && <p className='p-4'>No enrollments yet.</p>}
           <table className='table-fixed md:table-auto w-full overflow-hidden'>
                 <thead className='text-gray-900 border-b border-gray-500/20 text-sm 
                 text-left'>
