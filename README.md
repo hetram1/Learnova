@@ -1,96 +1,274 @@
 # Learnova
 
-A React/Vite/Tailwind LMS with an Express REST API, MongoDB/Mongoose persistence, and Clerk authentication.
+**Learnova** is a full-stack Learning Management System (LMS) where students can discover courses, enroll, learn through video lectures, and track progress. Educators can build and manage course content and monitor enrollments through a dedicated dashboard.
 
-Students can discover published courses, search by title, preview free lectures, enroll, watch YouTube or direct video URLs, and save lecture completion. Educators can create and edit courses, thumbnails, chapters, and lectures; publish or unpublish content; and view their own courses and enrollments.
+The application is split into a React frontend and an Express REST API backed by MongoDB.
 
-## Local setup
+## Features
 
-Use Node.js 22.x, matching the pinned Vercel backend runtime. Install dependencies in both applications:
+### Student experience
+- Browse published courses and search by title or category.
+- View course descriptions, curriculum, chapters, and lecture details.
+- Preview free lectures before enrolling.
+- Enroll in courses and access enrolled course content.
+- Watch YouTube videos or directly playable video URLs.
+- Save lecture completion and view enrolled courses.
+- Rate courses after enrollment.
 
-```powershell
+### Educator experience
+- Switch an account to the educator role.
+- Create, edit, publish, and unpublish courses.
+- Add and manage course chapters and video lectures.
+- Upload course thumbnails (PNG, JPEG, WebP, or GIF; up to 500 KB).
+- View educator-owned courses, enrollment totals, and enrolled students.
+- Manage only courses owned by the signed-in educator.
+
+### Authentication and access control
+- Clerk handles sign-in and session authentication.
+- Clerk webhooks synchronize user creation, updates, and deletion with the application database.
+- Protected API routes verify Clerk sessions and educator permissions.
+- Full lecture video URLs are available only to enrolled students and the course owner.
+- Unpublishing a course removes it from discovery and prevents new enrollments while preserving existing student access.
+
+## Tech stack
+
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 19, Vite 6, React Router 7 |
+| Styling | Tailwind CSS 3 |
+| Backend | Node.js 22, Express 5 |
+| Database | MongoDB, Mongoose |
+| Authentication | Clerk (React SDK and Express SDK) |
+| Video | YouTube embeds and direct video URLs |
+| Testing | Node.js test runner |
+| Deployment | Vercel |
+
+## Architecture
+
+~~~text
+┌──────────────────────────┐       HTTPS / JSON       ┌──────────────────────────┐
+│                          │  ──────────────────────> │                          │
+│     React + Vite         │                          │     Express REST API     │
+│     Student / Educator   │  <────────────────────── │     Clerk middleware     │
+│     UI                   │                          │     Controllers          │
+└──────────────────────────┘                          └────────────┬─────────────┘
+                                                                   │
+                                                          ┌────────▼────────┐
+                                                          │    MongoDB      │
+                                                          │    Mongoose     │
+                                                          └─────────────────┘
+
+                         Clerk authentication + webhooks
+~~~
+
+The frontend communicates with the backend through REST endpoints. The API validates authenticated requests, applies role and course-ownership checks, and reads or writes application data through Mongoose.
+
+## Repository structure
+
+~~~text
+Learnova/
+├── client/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── educator/
+│   │   │   └── student/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   │   ├── educator/
+│   │   │   └── student/
+│   │   ├── utils/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── .env.example
+│   └── package.json
+├── server/
+│   ├── configs/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── tests/
+│   ├── utils/
+│   ├── app.js
+│   ├── server.js
+│   ├── .env.example
+│   └── package.json
+└── README.md
+~~~
+
+## Getting started
+
+### Prerequisites
+- Node.js **22.x**
+- npm
+- MongoDB (local instance or MongoDB Atlas)
+- A Clerk application
+
+### 1. Clone the repository
+
+~~~bash
+git clone https://github.com/hetram1/Learnova.git
+cd Learnova
+~~~
+
+### 2. Install dependencies
+
+Install dependencies separately for the backend and frontend:
+
+~~~bash
 cd server
 npm ci
-Copy-Item .env.example .env
+
 cd ../client
 npm ci
-Copy-Item .env.example .env
-```
+~~~
 
-Keep any existing configured .env files instead of overwriting them. Fill in the values from your MongoDB and Clerk projects. Frontend and backend Clerk keys must belong to the same Clerk instance.
+### 3. Configure environment variables
 
-- Server: MONGODB_URI, CLERK_SECRET_KEY, CLERK_PUBLISHABLE_KEY, CLERK_WEBHOOK_SECRET.
-- MONGODB_DB_NAME defaults to lms. The URI is passed intact, including Atlas query parameters.
-- CLIENT_URL accepts comma-separated frontend origins; trailing slashes are normalized. On Vercel, the deployed frontend https://learnova-xi.vercel.app is also allowed by default. Local development defaults to http://localhost:5173.
-- Client: VITE_CLERK_PUBLISHABLE_KEY, VITE_BACKEND_URL (the API origin, without /api), and optional VITE_CURRENCY.
+Create local environment files from the committed examples.
 
-Start each app in a separate terminal:
+**Backend — server/.env**
 
-```powershell
+~~~env
+MONGODB_URI=mongodb://127.0.0.1:27017
+MONGODB_DB_NAME=lms
+CLERK_PUBLISHABLE_KEY=pk_test_your_key
+CLERK_SECRET_KEY=sk_test_your_key
+CLERK_WEBHOOK_SECRET=whsec_your_secret
+CLIENT_URL=http://localhost:5173
+PORT=5000
+~~~
+
+**Frontend — client/.env**
+
+~~~env
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_key
+VITE_BACKEND_URL=http://localhost:5000
+VITE_CURRENCY=₹
+~~~
+
+Use the actual values from your MongoDB and Clerk projects. The frontend and backend Clerk keys must belong to the **same Clerk application**. Never commit real secrets or local .env files.
+
+| Variable | Application | Purpose |
+| --- | --- | --- |
+| MONGODB_URI | Server | MongoDB connection string |
+| MONGODB_DB_NAME | Server | Database name (defaults to lms) |
+| CLERK_PUBLISHABLE_KEY | Server | Clerk publishable key used by the API |
+| CLERK_SECRET_KEY | Server | Clerk server-side secret |
+| CLERK_WEBHOOK_SECRET | Server | Verifies incoming Clerk webhook events |
+| CLIENT_URL | Server | Allowed frontend origin(s); multiple origins can be comma-separated |
+| PORT | Server | Local API port (defaults to 5000) |
+| VITE_CLERK_PUBLISHABLE_KEY | Client | Clerk key used by the frontend |
+| VITE_BACKEND_URL | Client | Backend origin, without the /api suffix |
+| VITE_CURRENCY | Client | Currency symbol displayed by the frontend |
+
+### 4. Start the application
+
+Run the backend and frontend in **separate terminals**.
+
+Terminal 1 — backend:
+
+~~~bash
 cd server
 npm run server
-```
+~~~
 
-```powershell
+Terminal 2 — frontend:
+
+~~~bash
 cd client
 npm run dev
-```
+~~~
 
-The defaults are http://localhost:5173 and http://localhost:5000. Sign in through Clerk. Select **Become Educator** to enable course management. User profiles are synchronized on authenticated API requests, so enrollment and creation work before a webhook is delivered. Clerk's UserButton handles account settings; signed webhooks synchronize account creation, updates, and deletion.
+Open **http://localhost:5173**. The API runs at **http://localhost:5000** by default.
 
-## Course content and access
-
-Create a draft, add chapters and video lectures, then publish it. Every published chapter must contain a lecture with a title, positive duration in minutes, and HTTP(S) video URL. YouTube watch, short, embed, shorts, and live video URLs are supported, along with directly playable browser video URLs. Videos remain hosted at the supplied URLs.
-
-Thumbnail uploads accept PNG, JPEG, WebP, and GIF files up to 500 KB and persist the image with the course in MongoDB. No additional upload service is required.
-
-The API verifies Clerk sessions and checks server-managed educator metadata. Educators can modify only their own courses. Anonymous visitors see published course outlines and free preview URLs. Full video URLs require enrollment or course ownership. Unpublishing removes discovery and new enrollment while retaining access for existing students. Courses with enrollments must be unpublished rather than deleted.
-
-Enrollment is direct; payment processing is outside this project's scope. Prices and discounts are retained from the existing course form. Dashboard totals represent actual courses and enrollments, not inferred payment revenue.
+Sign in through Clerk. To access course-management features, choose **Become Educator** in the application.
 
 ## REST API
 
-All responses use JSON with a success flag. Send Clerk session tokens as Authorization: Bearer <token> for authenticated routes.
+All API responses are JSON and include a success field. Authenticated endpoints expect a Clerk session token in the Authorization: Bearer <token> header.
 
-| Resource | Routes |
-| --- | --- |
-| Discovery | GET /api/courses?search=...&category=..., GET /api/courses/:id |
-| Courses | POST /api/courses, PUT /api/courses/:id, DELETE /api/courses/:id |
-| Chapters | GET/POST /api/courses/:id/chapters, GET/PUT/DELETE /api/courses/:id/chapters/:chapterId |
-| Lectures | GET/POST /api/courses/:id/chapters/:chapterId/lectures, GET/PUT/DELETE /api/courses/:id/chapters/:chapterId/lectures/:lectureId |
-| Enrollment | GET /api/enrollments, POST /api/enrollments/:courseId |
-| Progress | PUT /api/enrollments/:courseId/progress/:lectureId |
-| Existing course ratings | PUT /api/enrollments/:courseId/rating |
-| Current user | GET/PATCH /api/users/me |
-| Educator role | POST /api/educator/update-role |
-| Educator dashboard | GET /api/educator/dashboard, /api/educator/courses, /api/educator/students |
-| Clerk webhook | POST /clerk |
+| Area | Method | Endpoint | Purpose |
+| --- | --- | --- | --- |
+| Course discovery | GET | /api/courses | List published courses; supports search and category filters |
+| Course details | GET | /api/courses/:id | Retrieve course details and public course content |
+| Course management | POST | /api/courses | Create a course (educator) |
+| Course management | PUT / DELETE | /api/courses/:id | Update or delete an owned course |
+| Chapters | GET / POST | /api/courses/:id/chapters | Read or add chapters |
+| Chapters | GET / PUT / DELETE | /api/courses/:id/chapters/:chapterId | Read, update, or delete a chapter |
+| Lectures | GET / POST | /api/courses/:id/chapters/:chapterId/lectures | Read or add lectures |
+| Lectures | GET / PUT / DELETE | /api/courses/:id/chapters/:chapterId/lectures/:lectureId | Read, update, or delete a lecture |
+| Enrollments | GET | /api/enrollments | List the signed-in student's enrollments |
+| Enrollments | POST | /api/enrollments/:courseId | Enroll in a course |
+| Progress | PUT | /api/enrollments/:courseId/progress/:lectureId | Save lecture completion |
+| Ratings | PUT | /api/enrollments/:courseId/rating | Submit or update a course rating |
+| User profile | GET / PATCH | /api/users/me | Read or update the current user's name |
+| Educator role | POST | /api/educator/update-role | Become an educator |
+| Educator dashboard | GET | /api/educator/dashboard | Retrieve educator dashboard totals |
+| Educator courses | GET | /api/educator/courses | List the educator's courses |
+| Educator students | GET | /api/educator/students | List students enrolled in the educator's courses |
+| Clerk webhook | POST | /clerk | Synchronize Clerk user events |
 
-Clerk webhook endpoint: subscribe to user.created, user.updated, and user.deleted. Set the signing secret in CLERK_WEBHOOK_SECRET. Signature verification uses the original request bytes and repeated deliveries are safe.
+### Course publishing and video access
 
-## Verification
+To publish a course, each chapter must contain at least one lecture. A lecture needs a title, a positive duration in minutes, and an HTTP(S) video URL. YouTube watch, short, embed, shorts, and live URLs are supported, along with directly playable browser video URLs.
 
-```powershell
+Videos remain hosted at their supplied URLs. Course thumbnail images are stored with the course in MongoDB; accepted formats are PNG, JPEG, WebP, and GIF, up to 500 KB.
+
+Enrollment is direct. **Payment processing is not part of the current enrollment flow.** Course price and discount fields are retained in the course data, but they do not represent processed payments or revenue.
+
+## Tests and quality checks
+
+Run the frontend checks:
+
+~~~bash
 cd client
 npm run lint
 npm run build
-cd ../server
+~~~
+
+Run the backend integration tests:
+
+~~~bash
+cd server
 npm test
-```
+~~~
 
-The integration suite requires a reachable MONGODB_URI. It creates a randomly named learnova_test_* database, uses the actual Express application and Clerk JWT verification with a test-only RSA key, and controls Clerk profile responses without creating real Clerk accounts. It deletes only records in its own test database at the end. The database user needs permission to create indexes and read/write those test collections. Existing LMS data is untouched.
+The backend test suite requires a reachable MONGODB_URI. It creates a randomly named learnova_test_* database, exercises the Express application and authentication flow with test credentials, and removes only its own test data. The MongoDB user must be allowed to create indexes and read/write the test collections.
 
-Tests cover role and ownership enforcement, invalid and expired tokens, origin restrictions, course/chapter/lecture CRUD, draft visibility, private URL redaction, enrollment deduplication, saved progress, ratings, dashboard data, and webhook signatures and retries.
+Coverage includes authentication and role enforcement, course ownership, origin restrictions, course/chapter/lecture operations, draft visibility, private video URL access, enrollment deduplication, saved progress, ratings, educator dashboard data, and Clerk webhook signatures and retries.
 
-## Vercel deployment
+## Deployment on Vercel
 
-Create two Vercel projects linked to this repository and branch:
+The repository can be deployed as two Vercel projects.
 
-1. **API:** root directory server; Node.js 22; use the included server/vercel.json. Add all server environment variables from .env.example. CLIENT_URL must match the deployed frontend origin.
-2. **Frontend:** root directory client; framework Vite; build command npm run build; output directory dist. Set VITE_BACKEND_URL to the deployed API HTTPS origin and VITE_CLERK_PUBLISHABLE_KEY to the matching Clerk publishable key. The included rewrite supports direct links to React routes.
-3. Configure MongoDB Atlas network access for the API's deployment network. Configure the frontend domain in Clerk for your production instance, and register https://<api-domain>/clerk with the three user events.
-4. Redeploy the frontend after changing any VITE_* values, since Vite embeds them at build time.
+### Backend API
+1. Import the repository into Vercel.
+2. Set the project root directory to server.
+3. Use the Node.js 22 runtime and the included server/vercel.json.
+4. Configure the server environment variables from server/.env.example.
+5. Set CLIENT_URL to the deployed frontend origin.
 
-The API exports the Express app for Vercel and starts a listener only when executed locally. MongoDB connections are reused across function invocations. No frontend secrets or local .env files should be committed.
+### Frontend
+1. Create a second Vercel project using the same repository.
+2. Set the project root directory to client.
+3. Select Vite, use npm run build, and set the output directory to dist.
+4. Set VITE_BACKEND_URL to the deployed API HTTPS origin and configure VITE_CLERK_PUBLISHABLE_KEY.
+5. Configure the production frontend domain in Clerk.
 
-See the official [Express on Vercel documentation](https://vercel.com/docs/frameworks/backend/express) for deployment behavior.
+Finally, configure the Clerk webhook endpoint as https://<api-domain>/clerk and subscribe to user.created, user.updated, and user.deleted. Add the webhook signing secret to CLERK_WEBHOOK_SECRET.
+
+MongoDB Atlas must allow connections from the API deployment environment. Redeploy the frontend whenever a VITE_* variable changes because Vite embeds these values at build time.
+
+## Security notes
+- Keep Clerk secret keys and webhook signing secrets on the server only.
+- Do not commit .env files, credentials, or production secrets.
+- Keep the frontend and backend configured for the same Clerk instance.
+- Use HTTPS and restrict allowed frontend origins in production.
+- Course ownership and enrollment checks are enforced by the backend; frontend route protection alone is not an authorization boundary.
+
+---
+
+Built with React, Node.js, Express, MongoDB, and Clerk.
