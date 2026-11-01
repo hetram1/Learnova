@@ -61,6 +61,8 @@ describe('LMS REST integration with real MongoDB and a controlled Clerk identity
         // Exercise the production Express app with a test-only RSA verification key.
         process.env.CLERK_JWT_KEY = jwtKey
         process.env.MONGODB_DB_NAME = dbName
+        process.env.VERCEL = '1'
+        process.env.CLIENT_URL = 'http://localhost:5173/'
         const {default: app} = await import('../server.js')
         server = app.listen(0, '127.0.0.1')
         await once(server, 'listening')
@@ -82,6 +84,22 @@ describe('LMS REST integration with real MongoDB and a controlled Clerk identity
         for (const token of ['invalid-token', tokenFor('teacher',{exp:1}), tokenFor('teacher',{azp:'https://malicious.example'})]) {
             await request('/api/users/me', {headers:{Authorization:'Bearer ' + token}, status:401})
         }
+    })
+    it('allows the deployed frontend and configured origins with trailing slashes', async () => {
+        for (const origin of ['https://learnova-xi.vercel.app', 'http://localhost:5173']) {
+            const response = await fetch(base + '/', {headers:{Origin:origin}})
+            assert.equal(response.headers.get('access-control-allow-origin'), origin)
+            const preflight = await fetch(base + '/api/courses', {method:'OPTIONS', headers:{
+                Origin:origin, 'Access-Control-Request-Method':'POST',
+                'Access-Control-Request-Headers':'authorization,content-type',
+            }})
+            assert.equal(preflight.status, 204)
+            assert.equal(preflight.headers.get('access-control-allow-origin'), origin)
+            assert.match(preflight.headers.get('access-control-allow-headers'), /authorization/)
+        }
+        const rejected = await fetch(base + '/', {headers:{Origin:'https://malicious.example'}})
+        assert.equal(rejected.headers.get('access-control-allow-origin'), null)
+        await request('/api/users/me', {headers:{Authorization:'Bearer ' + tokenFor('student', {azp:'https://learnova-xi.vercel.app'})}})
     })
     it('denies anonymous and student course writes', async () => {
         await request('/api/courses', { method: 'POST', body: courseData, status: 401 })

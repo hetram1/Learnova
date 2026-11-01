@@ -10,7 +10,9 @@ import userRouter from './routes/userRoutes.js'
 
 const app = express()
 app.disable('x-powered-by')
-const origins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(value => value.trim())
+const defaultOrigin = process.env.VERCEL === '1' ? 'https://learnova-xi.vercel.app' : 'http://localhost:5173'
+const origins = [...new Set([defaultOrigin, ...(process.env.CLIENT_URL || '').split(',')]
+    .map(value => value.trim()).filter(Boolean).map(value => new URL(value).origin))]
 app.use(cors({ origin: origins }))
 app.get('/', (_req, res) => res.json({ success: true, message: 'Learnova API' }))
 app.use(async (_req, _res, next) => {
@@ -27,7 +29,12 @@ app.use((_req, res) => res.status(404).json({ success: false, message: 'Route no
 app.use((error, _req, res, _next) => {
     const status = error.status || (['ValidationError', 'CastError'].includes(error.name) ? 400 :
         error.code === 11000 || error.name === 'VersionError' ? 409 : 500)
-    if (status >= 500) console.error('API error:', error.name)
+    if (status >= 500) {
+        const message = ['MONGODB_URI', 'CLERK_SECRET_KEY', 'CLERK_WEBHOOK_SECRET'].reduce(
+            (value, key) => process.env[key] ? value.replaceAll(process.env[key], '[redacted]') : value,
+            error.message || 'Unknown server error')
+        console.error('API error:', error.name, message)
+    }
     res.status(status).json({ success: false, message: status >= 500 ? 'The server could not complete the request' : error.message })
 })
 export default app

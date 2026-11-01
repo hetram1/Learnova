@@ -21,7 +21,7 @@ Keep any existing configured .env files instead of overwriting them. Fill in the
 
 - Server: MONGODB_URI, CLERK_SECRET_KEY, CLERK_PUBLISHABLE_KEY, CLERK_WEBHOOK_SECRET.
 - MONGODB_DB_NAME defaults to lms. The URI is passed intact, including Atlas query parameters.
-- CLIENT_URL is the exact frontend origin, without a trailing slash. Multiple allowed origins can be comma separated.
+- CLIENT_URL accepts comma-separated frontend origins; trailing slashes are normalized. On Vercel, the deployed frontend https://learnova-xi.vercel.app is also allowed by default. Local development defaults to http://localhost:5173.
 - Client: VITE_CLERK_PUBLISHABLE_KEY, VITE_BACKEND_URL (the API origin, without /api), and optional VITE_CURRENCY.
 
 Start each app in a separate terminal:
