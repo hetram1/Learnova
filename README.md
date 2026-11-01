@@ -6,7 +6,7 @@ Students can discover published courses, search by title, preview free lectures,
 
 ## Local setup
 
-Use Node.js 22 or later. Install dependencies in both applications:
+Use Node.js 22.x, matching the pinned Vercel backend runtime. Install dependencies in both applications:
 
 ```powershell
 cd server
