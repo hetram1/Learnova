@@ -36,6 +36,7 @@ export const AppContextProvider = ({ children }) => {
             },
         })
         const data = await response.json().catch(() => null)
+        if (response.status === 401 && data?.reason) console.warn('Learnova authentication rejected:', data.reason)
         if (!response.ok || !data?.success) throw new Error(data?.message || 'Could not reach the Learnova API')
         return data
     }, [getToken])

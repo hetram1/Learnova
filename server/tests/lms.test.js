@@ -82,7 +82,9 @@ describe('LMS REST integration with real MongoDB and a controlled Clerk identity
         assert.equal((await request('/')).success, true)
         await request('/missing', {status:404})
         for (const token of ['invalid-token', tokenFor('teacher',{exp:1}), tokenFor('teacher',{azp:'https://malicious.example'})]) {
-            await request('/api/users/me', {headers:{Authorization:'Bearer ' + token}, status:401})
+            const rejection = await request('/api/users/me', {headers:{Authorization:'Bearer ' + token}, status:401})
+            assert.match(rejection.reason, /^[a-z0-9-]{1,100}$/)
+            assert.equal(JSON.stringify(rejection).includes(token), false)
         }
     })
     it('allows the deployed frontend and configured origins with trailing slashes', async () => {
